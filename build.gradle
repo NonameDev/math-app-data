@@ -1,12 +1,55 @@
 apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'com.github.kt3k.coveralls'
+apply plugin: 'com.github.ben-manes.versions'
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.3.1'
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.9'
+    }
+}
 
 repositories {
     jcenter()
 }
 
-sourceCompatibility = 1.8
+tasks.withType(JavaCompile) {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    configure(options) {
+        compilerArgs << '-Xlint:all' << '-Xlint:-options'
+        deprecation = true
+        encoding = 'UTF-8'
+    }
+}
+
+tasks.withType(Test) {
+    testLogging {
+        exceptionFormat 'full'
+    }
+}
 
 dependencies {
     compile 'org.json:json:20141113'
     compile 'junit:junit:4.12'
 }
+
+jacocoTestReport {
+    reports {
+        xml {
+            enabled = true // coveralls plugin depends on xml format report
+        }
+
+        html {
+            enabled = true
+        }
+    }
+}
+

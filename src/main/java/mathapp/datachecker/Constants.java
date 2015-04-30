@@ -1,15 +1,27 @@
 package mathapp.datachecker;
 
 /**
- * Created by noname on 4/30/15.
+ * Constants for the JSON data.
  */
 public enum Constants {
-    INSTANCE;
+    ;
 
+    /**
+     * Directory containing the real data
+     */
     public static final String REAL_DATA_PATH = "data/";
+    /**
+     * Name of the equation data file
+     */
     public static final String EQN_DATA_FILE_NAME = "equation_data.json";
+    /**
+     * Name of the version file
+     */
     public static final String VERSION_FILE_NAME = "version.json";
 
+    /**
+     * Keys used to extract data
+     */
     public static final String VERSION_KEY = "version";
     public static final String EQUATIONS_KEY = "equations";
     public static final String NAME_KEY = "name";

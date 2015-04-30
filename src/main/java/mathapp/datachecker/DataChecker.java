@@ -10,25 +10,40 @@ import java.util.Scanner;
 import static mathapp.datachecker.Constants.*;
 
 /**
+ * Class responsible for validating the data
  */
 public class DataChecker {
 
-    private String eqnDataPath;
-    private String versionPath;
+    /**
+     * Path to the directory containing the data
+     */
+    private String dataDirPath;
 
-
+    /**
+     * Constructor. Defaults the data directory to the directory with the real data
+     */
     public DataChecker() {
         this(REAL_DATA_PATH);
     }
 
-    public DataChecker(final String dataPath) {
-        this.eqnDataPath = dataPath + EQN_DATA_FILE_NAME;
-        this.versionPath = dataPath + VERSION_FILE_NAME;
+    /**
+     * Constructor. Sets the data directory path to the given value
+     *
+     * @param dataDirPath String with the path to the directory containing the data
+     */
+    public DataChecker(final String dataDirPath) {
+        this.dataDirPath = dataDirPath;
     }
 
+    /**
+     * Parses the data files in order to ensure their validity
+     *
+     * @throws Exception If there are any discrepancies in the data
+     */
     public void validateData() throws Exception {
-        final File eqnDataFile = new File(this.eqnDataPath);
-        final File versionFile = new File(this.versionPath);
+        this.checkDataDir(this.dataDirPath);
+        final File eqnDataFile = new File(this.dataDirPath + EQN_DATA_FILE_NAME);
+        final File versionFile = new File(this.dataDirPath + VERSION_FILE_NAME);
         this.checkFilesExist(eqnDataFile, versionFile);
         final String eqnDataString = this.getFileAsString(eqnDataFile);
         final String versionString = this.getFileAsString(versionFile);
@@ -36,13 +51,46 @@ public class DataChecker {
         this.validateEquationData(eqnDataString);
     }
 
+    /**
+     * Checks that the data directory exists
+     *
+     * @param dataDirPath String with the path to the directory containing
+     *                    the data
+     */
+    private void checkDataDir(final String dataDirPath) {
+        final File dataDir = new File(dataDirPath);
+        Assert.assertTrue("Data directory does not exist", dataDir.isDirectory());
+    }
 
+    /**
+     * Checks that both the equation data and the version file exist
+     *
+     * @param eqnDataFile File that contains the equation data
+     * @param versionFile File that contains the version of the current data
+     */
     private void checkFilesExist(final File eqnDataFile, final File versionFile) {
         Assert.assertTrue("Equation data file does not exit", eqnDataFile.isFile());
         Assert.assertTrue("Version file does not exit", versionFile.isFile());
     }
 
-    private void validateEquationData(final String content) throws Exception {
+    /**
+     * Checks that the version file is correct
+     *
+     * @param content String containing the contents of the version fiel
+     */
+    private void validateVersionFile(final String content) {
+        final JSONObject baseJsonObject = new JSONObject(content);
+        Assert.assertTrue("Version data does not contain version", baseJsonObject.has(VERSION_KEY));
+        final int versionNum = baseJsonObject.optInt(VERSION_KEY, -1);
+        Assert.assertTrue("Version is not an int", versionNum != -1);
+    }
+
+    /**
+     * Checks that the equation data file is valid
+     *
+     * @param content String containing the contents of the equation data file
+     */
+    private void validateEquationData(final String content) {
         final JSONObject baseJsonObject = new JSONObject(content);
         Assert.assertTrue("Equation data does not contain equations", baseJsonObject.has(EQUATIONS_KEY));
         final JSONArray eqnsArray = baseJsonObject.optJSONArray(EQUATIONS_KEY);
@@ -52,6 +100,11 @@ public class DataChecker {
         }
     }
 
+    /**
+     * Cheks that JSON object for the equation data
+     *
+     * @param obj JSONObject for the equation data
+     */
     private void checkEquationJsonObject(final JSONObject obj) {
         Assert.assertNotNull("Equation is not a JSONObject", obj);
         Assert.assertTrue("Equation does not contain name", obj.has(NAME_KEY));
@@ -62,11 +115,20 @@ public class DataChecker {
         this.checkVariables(obj);
     }
 
+    /**
+     * Checks the content of the name in the equations JSONObject
+     * @param obj JSONObject for the equation data
+     */
     private void checkName(final JSONObject obj) {
         final String name = obj.optString(NAME_KEY);
         Assert.assertNotNull("Name is not a String", name);
     }
 
+    /**
+     * Checks the contents of the keywords in the equations JSONObject
+     *
+     * @param obj JSONObject for the equation data
+     */
     private void checkKeywords(final JSONObject obj) {
         final JSONArray keywords = obj.optJSONArray(KEYWORDS_KEY);
         Assert.assertNotNull("Keywords is not an array", keywords);
@@ -76,6 +138,11 @@ public class DataChecker {
         }
     }
 
+    /**
+     * Checks the contents of the keywords in the equations JSONObject
+     *
+     * @param obj JSONObject for the equation data
+     */
     private void checkVariables(final JSONObject obj) {
         final JSONArray variables = obj.optJSONArray(VARIABLES_KEY);
         Assert.assertNotNull("Variables is not an Array", variables);
@@ -85,6 +152,11 @@ public class DataChecker {
         }
     }
 
+    /**
+     * Checks the given JSONObject representing a variable object
+     *
+     * @param varObj JSONObject representing a variable
+     */
     private void checkVariable(final JSONObject varObj) {
         Assert.assertNotNull("Variable is not a JSONObject", varObj);
         Assert.assertTrue("Variable does not contain name", varObj.has(NAME_KEY));
@@ -98,13 +170,13 @@ public class DataChecker {
         Assert.assertNotNull("Variable expression is not a String", expression);
     }
 
-    private void validateVersionFile(final String content) throws Exception {
-        final JSONObject baseJsonObject = new JSONObject(content);
-        Assert.assertTrue("Version data does not contain version", baseJsonObject.has(VERSION_KEY));
-        final int versionNum = baseJsonObject.optInt(VERSION_KEY, -1);
-        Assert.assertTrue("Version is not an int", versionNum != -1);
-    }
-
+    /**
+     * Grabs all the contents of the given file and packs it into a string
+     *
+     * @param f File whose contents will be packed into a string
+     * @return String containing the contents of the given file
+     * @throws Exception I/O Exceptions
+     */
     private String getFileAsString(final File f) throws Exception {
         try (final Scanner scanner = new Scanner(f)) {
             return scanner.useDelimiter("\\Z").next();

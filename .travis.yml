@@ -7,7 +7,7 @@ script:
   - ./gradlew clean assemble check -Dpre-dex=false --stacktrace
 
 after_success:
- - ./gradlew jacocoTestReport coveralls --stacktrace
+  - ./gradlew jacocoTestReport coveralls --stacktrace
 
 branches:
   except:

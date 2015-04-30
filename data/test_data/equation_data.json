@@ -1,1 +1,0 @@
-{"equations":[{"name":"equation_name","keywords":["this","is","an","equation"],"variables":[{"name":"var1","symbol":"a","expression":"b+c+d"},{"name":"var2","symbol":"b","expression":"a-c-d"},{"name":"var3","symbol":"c","expression":"a-b-d"},{"name":"var4","symbol":"d","expression":"a-b-c"}]}]}

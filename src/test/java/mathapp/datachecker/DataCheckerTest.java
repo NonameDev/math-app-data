@@ -3,7 +3,7 @@ package mathapp.datachecker;
 import org.junit.Test;
 
 /**
- * Created by noname on 4/30/15.
+ * Unit test for DataChecker
  */
 public class DataCheckerTest  {
 

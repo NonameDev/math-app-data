@@ -53,3 +53,7 @@ jacocoTestReport {
     }
 }
 
+task generateImages(type:Exec) {
+   workingDir '.'
+   commandLine 'python', 'src/main/python/gen_imgs.py'
+}

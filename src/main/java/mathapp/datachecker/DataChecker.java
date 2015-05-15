@@ -5,9 +5,21 @@ import org.json.JSONObject;
 import org.junit.Assert;
 
 import java.io.File;
-import java.util.Scanner;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
-import static mathapp.datachecker.Constants.*;
+import static mathapp.datachecker.Constants.CATEGORY_KEY;
+import static mathapp.datachecker.Constants.EQN_DATA_FILE_NAME;
+import static mathapp.datachecker.Constants.EQUATIONS_KEY;
+import static mathapp.datachecker.Constants.EXPRESSION_KEY;
+import static mathapp.datachecker.Constants.IMAGE_KEY;
+import static mathapp.datachecker.Constants.KEYWORDS_KEY;
+import static mathapp.datachecker.Constants.NAME_KEY;
+import static mathapp.datachecker.Constants.REAL_DATA_PATH;
+import static mathapp.datachecker.Constants.SYMBOL_KEY;
+import static mathapp.datachecker.Constants.VARIABLES_KEY;
+import static mathapp.datachecker.Constants.VERSION_FILE_NAME;
+import static mathapp.datachecker.Constants.VERSION_KEY;
 
 /**
  * Class responsible for validating the data
@@ -42,11 +54,11 @@ public class DataChecker {
      */
     public void validateData() throws Exception {
         this.checkDataDir(this.dataDirPath);
-        final File eqnDataFile = new File(this.dataDirPath + EQN_DATA_FILE_NAME);
-        final File versionFile = new File(this.dataDirPath + VERSION_FILE_NAME);
-        this.checkFilesExist(eqnDataFile, versionFile);
-        final String eqnDataString = this.getFileAsString(eqnDataFile);
-        final String versionString = this.getFileAsString(versionFile);
+        final String eqnDataPath = this.dataDirPath + EQN_DATA_FILE_NAME;
+        final String versionPath = this.dataDirPath + VERSION_FILE_NAME;
+        this.checkFilesExist(eqnDataPath, versionPath);
+        final String eqnDataString = this.getFileAsString(eqnDataPath);
+        final String versionString = this.getFileAsString(versionPath);
         this.validateVersionFile(versionString);
         this.validateEquationData(eqnDataString);
     }
@@ -65,10 +77,12 @@ public class DataChecker {
     /**
      * Checks that both the equation data and the version file exist
      *
-     * @param eqnDataFile File that contains the equation data
-     * @param versionFile File that contains the version of the current data
+     * @param eqnDataPath String containing the path to the equation data file
+     * @param versionPath String containing the path to the version file
      */
-    private void checkFilesExist(final File eqnDataFile, final File versionFile) {
+    private void checkFilesExist(final String eqnDataPath, final String versionPath) {
+        final File eqnDataFile = new File(eqnDataPath);
+        final File versionFile = new File(versionPath);
         Assert.assertTrue("Equation data file does not exit", eqnDataFile.isFile());
         Assert.assertTrue("Version file does not exit", versionFile.isFile());
     }
@@ -108,20 +122,47 @@ public class DataChecker {
     private void checkEquationJsonObject(final JSONObject obj) {
         Assert.assertNotNull("Equation is not a JSONObject", obj);
         Assert.assertTrue("Equation does not contain name", obj.has(NAME_KEY));
+        Assert.assertTrue("Equation does not contain a category", obj.has(CATEGORY_KEY));
+        Assert.assertTrue("Equation does not contain an image key", obj.has(IMAGE_KEY));
         Assert.assertTrue("Equation does not contain keywords", obj.has(KEYWORDS_KEY));
         Assert.assertTrue("Equation does not contain variables", obj.has(VARIABLES_KEY));
         this.checkName(obj);
         this.checkKeywords(obj);
         this.checkVariables(obj);
+        this.checkImageKey(obj);
+        this.checkCategory(obj);
     }
 
     /**
      * Checks the content of the name in the equations JSONObject
+     *
      * @param obj JSONObject for the equation data
      */
     private void checkName(final JSONObject obj) {
         final String name = obj.optString(NAME_KEY);
         Assert.assertNotNull("Name is not a String", name);
+    }
+
+
+    /**
+     * Checks the content of the image key in the equations JSONObject
+     *
+     * @param obj JSONObject for the equation data
+     */
+    private void checkImageKey(final JSONObject obj) {
+        final String name = obj.optString(IMAGE_KEY);
+        Assert.assertNotNull("Image Key is not a String", name);
+    }
+
+
+    /**
+     * Checks the content of the category in the equations JSONObject
+     *
+     * @param obj JSONObject for the equation data
+     */
+    private void checkCategory(final JSONObject obj) {
+        final String name = obj.optString(CATEGORY_KEY);
+        Assert.assertNotNull("Category is not a String", name);
     }
 
     /**
@@ -173,13 +214,12 @@ public class DataChecker {
     /**
      * Grabs all the contents of the given file and packs it into a string
      *
-     * @param f File whose contents will be packed into a string
+     * @param path String containing the path to the file whose contents are
+     *             being extracted into a string
      * @return String containing the contents of the given file
      * @throws Exception I/O Exceptions
      */
-    private String getFileAsString(final File f) throws Exception {
-        try (final Scanner scanner = new Scanner(f)) {
-            return scanner.useDelimiter("\\Z").next();
-        }
+    private String getFileAsString(final String path) throws Exception {
+        return String.join("\n", Files.readAllLines(Paths.get(path)));
     }
 }

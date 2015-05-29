@@ -4,7 +4,20 @@ import numpy as np
 import tempfile
 import shutil
 import json
+import sys
 import os
+
+IMGS_ROOT_PATH = './imgs'
+DIR_FORMAT = '{0}/{1}'
+"""
+DPI info is defined here. The key referes to the name and the value refers
+to the font size used when generating the image.
+NOTE: These might need to be tweaked after further testing
+"""
+DPI = dict(ldpi=30,
+           mdpi=75,
+           hdpi=150,
+           xhdpi=300)
 
 
 def main():
@@ -17,24 +30,54 @@ def main():
         eqn_data = json.load(eqn_data_file)
         eqns = eqn_data['equations']
         tmp_dir = tempfile.mkdtemp()
-        for eqn in eqns:
-            tex = eqn['tex']
-            out_name = '{0}.png'.format(eqn['image_key'])
-            generate_image(out_name, tex, tmp_dir)
-            print('Generated img {0}'.format(out_name))
+        for size_name in DPI:
+            gprint('Generating {0} images'.format(size_name))
+            for eqn in eqns:
+                tex = eqn['tex']
+                out_name = '{0}.png'.format(eqn['image_key'])
+                generate_image(out_name, tex, tmp_dir, size_name)
+                gprint('\tGenerated img {0}'.format(out_name))
         shutil.rmtree(tmp_dir)
+
+
+def gprint(s):
+    """
+    Allows the script to print directly to the terminal while script is being
+    executed through Gradle by flushing stdout as mentioned in the following
+    StackOverflow answer
+    http://stackoverflow.com/a/28194508/2392229
+
+    @type  s: string
+    @param s: string that will be printed
+    """
+    print(s)
+    sys.stdout.flush()
 
 
 def check_imgs_dir():
     """
-    Checks if the imgs directory exists and if it
+    Checks if the imgs directory (and all its subdirectories) exists and if it
     doesnt, it creates it
     """
-    if not os.path.exists('./imgs'):
-        os.mkdir('./imgs')
+    check_dir(IMGS_ROOT_PATH)
+    for size_name in DPI:
+        path = DIR_FORMAT.format(IMGS_ROOT_PATH, size_name)
+        check_dir(path)
 
 
-def generate_image(out_name, tex, tmp_dir):
+def check_dir(path):
+    """
+    Checks if the directory at the given path exists. If it doesnt, the
+    directory is created
+
+    @type  path: string
+    @param path: sting containing the path to the directory being checked
+    """
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+
+def generate_image(out_name, tex, tmp_dir, size_name):
     """
     Generates an image with the give filename(out_name) for the
     given tex string
@@ -49,23 +92,25 @@ def generate_image(out_name, tex, tmp_dir):
     @param tmp_dir: string containing path to the temporary
                     directory used to save the raw image
                     from matplotlib
+    @type  size_name: string
+    @param size_name: string containing the name of the size of the image
     """
     tmp_filename = '{0}/{1}'.format(tmp_dir, 'tmp.png')
     plt.text(0,
              0,
              r"$%s$" % tex,
-             fontsize=300)
+             fontsize=DPI[size_name])
     plt.axis('off')
     plt.savefig(filename=tmp_filename,
                 transparent=True,
                 dpi=100,
                 bbox_inches='tight',
                 pad_inches=0)
-    trim_img(out_name, tmp_filename)
+    trim_img(out_name, tmp_filename, size_name)
     plt.clf()
 
 
-def trim_img(out_name, filename):
+def trim_img(out_name, filename, size_name):
     """
     Crops the whitespace in the temporary image generated
 
@@ -74,8 +119,11 @@ def trim_img(out_name, filename):
                      resulting image
     @type  filename: string
     @param filename: filename of the temporary image
+    @type  size_name: string
+    @param size_name: string containing the name of the size of the image
     """
-    dir_out_name = 'imgs/{0}'.format(out_name)
+    out_dir = DIR_FORMAT.format(IMGS_ROOT_PATH, size_name)
+    full_out_name = DIR_FORMAT.format(out_dir, out_name)
     im = Image.open(filename)
     pix = np.asarray(im)
 
@@ -86,7 +134,7 @@ def trim_img(out_name, filename):
     box = box_min + box_max
 
     region = im.crop(box)
-    region.save(dir_out_name, 'PNG')
+    region.save(full_out_name, 'PNG')
 
 if __name__ == '__main__':
     main()

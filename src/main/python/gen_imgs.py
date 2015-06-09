@@ -1,12 +1,14 @@
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import threading
 import tempfile
 import shutil
 import json
 import sys
 import os
 
+GENERATED_IMAGE_FORMAT = '[thread:{0} | dpi:{1}] Generated img {2}'
 IMGS_ROOT_PATH = './imgs'
 DIR_FORMAT = '{0}/{1}'
 """
@@ -24,20 +26,19 @@ def main():
     """
     Method called when script is run. Parses the equation
     data and generates images for all the equations
+    TODO: Generate images for each dpi different threads
     """
     check_imgs_dir()
     with open('data/equation_data.json') as eqn_data_file:
         eqn_data = json.load(eqn_data_file)
         eqns = eqn_data['equations']
-        tmp_dir = tempfile.mkdtemp()
+        workers = []
         for size_name in DPI:
-            gprint('Generating {0} images'.format(size_name))
-            for eqn in eqns:
-                tex = eqn['tex']
-                out_name = '{0}.png'.format(eqn['image_key'])
-                generate_image(out_name, tex, tmp_dir, size_name)
-                gprint('\tGenerated img {0}'.format(out_name))
-        shutil.rmtree(tmp_dir)
+            worker = ImageGenerator(eqns, size_name)
+            worker.start()
+            workers.append(worker)
+        for worker in workers:
+            worker.join()
 
 
 def gprint(s):
@@ -77,64 +78,110 @@ def check_dir(path):
         os.mkdir(path)
 
 
-def generate_image(out_name, tex, tmp_dir, size_name):
+class ImageGenerator(threading.Thread):
     """
-    Generates an image with the give filename(out_name) for the
-    given tex string
-
-    @type  out_name: string
-    @param out_name: string containing the filename of the
-                     resulting image
-    @type  tex: string
-    @param tex: string containing the tex used to generate the
-                image
-    @type  tmp_dir: string
-    @param tmp_dir: string containing path to the temporary
-                    directory used to save the raw image
-                    from matplotlib
-    @type  size_name: string
-    @param size_name: string containing the name of the size of the image
+    Class in charge of generating the images for a DPI level
     """
-    tmp_filename = '{0}/{1}'.format(tmp_dir, 'tmp.png')
-    plt.text(0,
-             0,
-             r"$%s$" % tex,
-             fontsize=DPI[size_name])
-    plt.axis('off')
-    plt.savefig(filename=tmp_filename,
-                transparent=True,
-                dpi=100,
-                bbox_inches='tight',
-                pad_inches=0)
-    trim_img(out_name, tmp_filename, size_name)
-    plt.clf()
 
+    def __init__(self, eqns, size_name):
+        """
+        Constructor. Sets the given parameters to instance variables and
+        creates a new matplotlib figure for the given DPI level
 
-def trim_img(out_name, filename, size_name):
-    """
-    Crops the whitespace in the temporary image generated
+        @type  eqns: list
+        @param eqns: Equations exracted from the equation data file
+        @type  size_name: string
+        @param eqns: Name of the DPI level whose images are being generated
+        """
+        super(ImageGenerator, self).__init__()
+        self._eqns = eqns
+        self._size_name = size_name
+        self._fig = plt.figure()
 
-    @type  out_name: string
-    @param out_name: string containing the filename of the
-                     resulting image
-    @type  filename: string
-    @param filename: filename of the temporary image
-    @type  size_name: string
-    @param size_name: string containing the name of the size of the image
-    """
-    out_dir = DIR_FORMAT.format(IMGS_ROOT_PATH, size_name)
-    full_out_name = DIR_FORMAT.format(out_dir, out_name)
-    im = Image.open(filename)
-    pix = np.asarray(im)
+    def run(self):
+        """
+        Iterated through the equations and generates an image for each one
+        """
+        tmp_dir = tempfile.mkdtemp()
+        for eqn in self._eqns:
+            tex = eqn['tex']
+            out_name = '{0}.png'.format(eqn['image_key'])
+            self.generate_image(out_name, tex, tmp_dir, self._size_name)
+            self.print_generated_image(out_name)
+        plt.close(self._fig)
+        shutil.rmtree(tmp_dir)
 
-    pix = pix[:, :, 0:3]
-    idx = np.where(pix-255)[0:2]
-    box_min = list(map(min, idx))[::-1]
-    box_max = list(map(max, idx))[::-1]
-    box = box_min + box_max
+    def print_generated_image(self, out_name):
+        """
+        Prints to the terminal to show that the image with the given name has
+        been generated
 
-    region = im.crop(box)
-    region.save(full_out_name, 'PNG')
+        @type  out_name: string
+        @param out_name: Name of the image generated
+        """
+        gprint(GENERATED_IMAGE_FORMAT.format(threading.current_thread().ident,
+                                             self._size_name,
+                                             out_name))
+
+    def generate_image(self, out_name, tex, tmp_dir, size_name):
+        """
+        Generates an image with the give filename(out_name) for the
+        given tex string
+
+        @type  out_name: string
+        @param out_name: string containing the filename of the
+                        resulting image
+        @type  tex: string
+        @param tex: string containing the tex used to generate the
+                    image
+        @type  tmp_dir: string
+        @param tmp_dir: string containing path to the temporary
+                        directory used to save the raw image
+                        from matplotlib
+        @type  size_name: string
+        @param size_name: string containing the name of the size of the image
+        """
+        tmp_filename = '{0}/{1}'.format(tmp_dir, 'tmp.png')
+        fig_index = abs(hash(tmp_filename)) % 100
+        self._fig = plt.figure(fig_index)
+        self._fig.text(0,
+                       0,
+                       r"$%s$" % tex,
+                       fontsize=DPI[size_name])
+        self._fig.savefig(filename=tmp_filename,
+                          transparent=True,
+                          dpi=100,
+                          bbox_inches='tight',
+                          pad_inches=0)
+        self.trim_img(out_name, tmp_filename, self._size_name)
+        plt.close(self._fig)
+
+    def trim_img(self, out_name, filename, size_name):
+        """
+        Crops the transparent whitespace in the temporary image generated and
+        saves it in the given path
+
+        @type  out_name: string
+        @param out_name: string containing the filename of the
+                        resulting image
+        @type  filename: string
+        @param filename: filename of the temporary image
+        @type  size_name: string
+        @param size_name: string containing the name of the size of the image
+        """
+        out_dir = DIR_FORMAT.format(IMGS_ROOT_PATH, size_name)
+        full_out_name = DIR_FORMAT.format(out_dir, out_name)
+        img = Image.open(filename)
+        img_array = np.asarray(img)
+        # isolate alpha bytes in the image array
+        img_array_alpha = img_array[:, :, -1:]
+        # find all non-transparent points in the image
+        non_transparent_points = np.where(img_array_alpha != 0)[0:2]
+        min_crop = list(map(min, non_transparent_points))[::-1]
+        max_crop = list(map(max, non_transparent_points))[::-1]
+        crop = min_crop + max_crop
+        cropped_image = img.crop(crop)
+        cropped_image.save(full_out_name, 'PNG')
 
 if __name__ == '__main__':
     main()

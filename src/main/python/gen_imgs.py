@@ -26,7 +26,6 @@ def main():
     """
     Method called when script is run. Parses the equation
     data and generates images for all the equations
-    TODO: Generate images for each dpi different threads
     """
     check_imgs_dir()
     with open('data/equation_data.json') as eqn_data_file:

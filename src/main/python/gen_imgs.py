@@ -38,6 +38,7 @@ def main():
             workers.append(worker)
         for worker in workers:
             worker.join()
+        verify_output(eqns)
 
 
 def gprint(s):
@@ -75,6 +76,36 @@ def check_dir(path):
     """
     if not os.path.exists(path):
         os.mkdir(path)
+
+
+def verify_output(eqns):
+    """
+    Verifies that the output of the script is correct
+
+    @type  eqns: list
+    @param eqns: Equations exracted from the equation data file
+    """
+    for size_name in DPI:
+        path = DIR_FORMAT.format(IMGS_ROOT_PATH, size_name)
+        if not verify_dpi_dir(path, eqns):
+            raise Exception('Failed validity test!!!!')
+
+
+def verify_dpi_dir(path, eqns):
+    """
+    Verifies that the given dpi directory contains all the expected images
+
+    @type  path: string
+    @param path: path to the dpi directory
+    @type  eqns: list
+    @param eqns: Equations exracted from the equation data file
+    """
+    for eqn in eqns:
+        image_name = '{0}.png'.format(eqn['image_key'])
+        image_path = DIR_FORMAT.format(path, image_name)
+        if not os.path.isfile(image_path):
+            return False
+    return True
 
 
 class ImageGenerator(threading.Thread):

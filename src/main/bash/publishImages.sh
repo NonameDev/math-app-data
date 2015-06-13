@@ -2,7 +2,7 @@
 
 SLUG="NonameDev/MathAppData"
 BRANCH="beta"
-DESTINATION_BRANCH="beta"
+DESTINATION_BRANCH="master"
 
 #set -e
 set -x

@@ -1,33 +1,28 @@
 language: java
-
 jdk:
-  - oraclejdk8
-
+- oraclejdk8
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y python
-  - sudo pip install Pillow
-  - sudo pip install numpy
-  - sudo pip install matplotlib
-
+- sudo apt-get update -qq
+- sudo apt-get install -y python
+- sudo pip install Pillow
+- sudo pip install numpy
+- sudo pip install matplotlib
 script:
-  - ./gradlew clean assemble check -Dpre-dex=false --stacktrace
-  - ./gradlew generateImages --stacktrace
-
+- "./gradlew clean assemble check -Dpre-dex=false --stacktrace"
+- "./gradlew generateImages --stacktrace"
 after_success:
-  - ./gradlew jacocoTestReport coveralls --stacktrace
-
+- "./gradlew jacocoTestReport coveralls --stacktrace"
+- "./gradlew publishImages --stacktrace"
 branches:
   except:
-    - gh-pages
-
+  - gh-pages
 notifications:
   email: false
-
 sudo: true
-
 cache:
   directories:
-    - $HOME/.gradle
-    - $HOME/.cache/pip
-
+  - "$HOME/.gradle"
+  - "$HOME/.cache/pip"
+env:
+  global:
+    secure: Y+ppz7bL40EUm87xsRehNUT4BnZR4+2yUoI0EeRkLi9Z8J3T+zbGKzlPzkdQ4tOa4ktg1aJUBBlyr4dqycf6de6RqCNEQPI7NLIaxQlEAzRQPxuAAQpyJNgYlTw1N94qae5z2d7V0xAXSeZ1vuKipO15MvTAMAjuv2a/ZLaUt4w=
